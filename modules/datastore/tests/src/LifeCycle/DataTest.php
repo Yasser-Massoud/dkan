@@ -6,7 +6,8 @@ use Drupal\Core\Field\FieldItemList;
 use Drupal\Core\File\FileSystemInterface;
 use Drupal\Core\Logger\LoggerChannel;
 use Drupal\Core\Logger\LoggerChannelFactory;
-use Drupal\datastore\DataNodeLifeCycle;
+use Drupal\datastore\LifeCycle\Data;
+use Drupal\metastore\NodeWrapper\Data as Wrapper;
 use Drupal\datastore\Service;
 use Drupal\node\Entity\Node;
 use MockChain\Chain;
@@ -14,83 +15,31 @@ use MockChain\Options;
 use MockChain\Sequence;
 use PHPUnit\Framework\TestCase;
 
-/**
- *
- */
-class DataNodeLifeCycle2Test extends TestCase {
+class DataTest extends TestCase {
 
-  /**
-   *
-   */
-  public function initialSetUp(string $type, stdClass $data) {
-    $options = (new Options())
-      ->add("datastore.service", Service::class);
-    $containerChain = (new Chain($this))
-      ->add(Container::class, 'get', $options);
-    $container = $containerChain->getMock();
-
-    $sequence = (new Sequence())
-      ->add($type)
-      ->add(json_encode($data));
-
-    $entity = (new Chain($this))
-      ->add(Node::class, 'bundle', 'data')
-      ->add(Node::class, 'uuid', '12345')
-      ->add(Node::class, 'get', FieldItemList::class)
-      ->add(FieldItemList::class, 'first', FieldItemInterface::class)
-      ->add(FieldItemInterface::class, '__get', $sequence)
+  public function testNonDistributionData() {
+    $data = (new Chain($this))
+      ->add(Wrapper::class, 'getDataType', 'blah')
       ->getMock();
 
-    return [$container, $entity];
-  }
+    $cycle = new Data($data);
 
-  /**
-   *
-   */
-  public function testNonDistributionInsert() {
-    $metadata = (object) ['identifier' => "12345"];
-    [$container, $entity] = $this->initialSetUp('foobar', $metadata);
-
-    \Drupal::setContainer($container);
-
-    $cycle = new DataNodeLifeCycle($entity);
     $this->assertNull($cycle->insert());
-  }
-
-  /**
-   *
-   */
-  public function testNonDistributionPreDelete() {
-    $metadata = (object) ['identifier' => "12345"];
-    [$container, $entity] = $this->initialSetUp('foobar', $metadata);
-
-    \Drupal::setContainer($container);
-
-    $cycle = new DataNodeLifeCycle($entity);
     $this->assertNull($cycle->predelete());
   }
 
-  /**
-   *
-   */
   public function testDistributionWithoutDownloadURL() {
     $metadata = (object) [
-      'identifier' => "12345",
-      'data' => (object) [
-        'accessURL' => "http://google.com",
-      ],
+      'data' => (object) []
     ];
-    [$container, $entity] = $this->initialSetUp('distribution', $metadata);
-
-    \Drupal::setContainer($container);
-
-    $cycle = new DataNodeLifeCycle($entity);
+    $data = (new Chain($this))
+      ->add(Wrapper::class, 'getDataType', 'distribution')
+      ->add(Wrapper::class, 'getMetadata', $metadata)
+      ->getMock();
+    $cycle = new Data($data);
     $this->assertNull($cycle->insert());
   }
 
-  /**
-   *
-   */
   public function testDistributionWithDownloadURL() {
     $options = (new Options())
       ->add("datastore.service", Service::class)
@@ -113,30 +62,22 @@ class DataNodeLifeCycle2Test extends TestCase {
       ],
     ];
 
-    $sequence = (new Sequence())
-      ->add('distribution')
-      ->add(json_encode($metadata));
-
-    $entity = (new Chain($this))
-      ->add(Node::class, 'bundle', 'data')
-      ->add(Node::class, 'uuid', '12345')
-      ->add(Node::class, 'get', FieldItemList::class)
-      ->add(FieldItemList::class, 'first', FieldItemInterface::class)
-      ->add(FieldItemInterface::class, '__get', $sequence)
-      ->getMock();
-
     \Drupal::setContainer($container);
 
-    $cycle = new DataNodeLifeCycle($entity);
+    $data = (new Chain($this))
+      ->add(Wrapper::class, 'getIdentifier', '12345')
+      ->add(Wrapper::class, 'getDataType', 'distribution')
+      ->add(Wrapper::class, 'getMetadata', $metadata)
+      ->getMock();
+
+    $cycle = new Data($data);
     $cycle->insert();
 
     $this->assertEquals('Invalid metadata information or missing file information.',
       $containerChain->getStoredInput('log')[1]);
   }
 
-  /**
-   *
-   */
+
   public function testLifeCycle() {
     $options = (new Options())
       ->add('datastore.service', Service::class)
@@ -160,21 +101,13 @@ class DataNodeLifeCycle2Test extends TestCase {
       ],
     ];
 
-    $options = (new Options())
-      ->add('field_data_type', 'distribution')
-      ->add('field_json_metadata', json_encode($metadata))
-      ->use('field_get')
-      ->index(1);
-
-    $entity = (new Chain($this))
-      ->add(Node::class, 'bundle', 'data')
-      ->add(Node::class, 'uuid', '12345')
-      ->add(Node::class, 'get', FieldItemList::class, 'field_get')
-      ->add(FieldItemList::class, 'first', FieldItemInterface::class)
-      ->add(FieldItemInterface::class, '__get', $options)
+    $data = (new Chain($this))
+      ->add(Wrapper::class, 'getIdentifier', '12345')
+      ->add(Wrapper::class, 'getDataType', 'distribution')
+      ->add(Wrapper::class, 'getMetadata', $metadata)
       ->getMock();
 
-    $cycle = new DataNodeLifeCycle($entity);
+    $cycle = new Data($data);
     $cycle->insert();
     // The right info was given to the datastore service to queue for import.
     $this->assertEquals(['12345', TRUE], $containerChain->getStoredInput('import'));

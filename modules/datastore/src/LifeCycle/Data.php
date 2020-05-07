@@ -1,14 +1,14 @@
 <?php
 
-namespace Drupal\datastore;
+namespace Drupal\datastore\LifeCycle;
 
-use Drupal\common\AbstractDataNodeLifeCycle;
+use Drupal\metastore\LifeCycle\AbstractData;
 use Drupal\common\LoggerTrait;
 
 /**
- * DataNodeLifeCycle.
+ * Data.
  */
-class DataNodeLifeCycle extends AbstractDataNodeLifeCycle {
+class Data extends AbstractData {
   use LoggerTrait;
 
   /**
@@ -17,8 +17,7 @@ class DataNodeLifeCycle extends AbstractDataNodeLifeCycle {
    * If a CSV resource is being saved a job should be created.
    */
   public function insert() {
-    $entity = $this->node;
-    if ($this->getDataType() != 'distribution') {
+    if ($this->data->getDataType() != 'distribution') {
       return;
     }
 
@@ -26,7 +25,7 @@ class DataNodeLifeCycle extends AbstractDataNodeLifeCycle {
       try {
         /* @var $datastoreService \Drupal\datastore\Service */
         $datastoreService = \Drupal::service('datastore.service');
-        $datastoreService->import($entity->uuid(), TRUE);
+        $datastoreService->import($this->data->getIdentifier(), TRUE);
       }
       catch (\Exception $e) {
         $this->setLoggerFactory(\Drupal::service('logger.factory'));
@@ -43,22 +42,21 @@ class DataNodeLifeCycle extends AbstractDataNodeLifeCycle {
    * Also, its datastore should go.
    */
   public function predelete() {
-    $entity = $this->node;
-    if ($this->getDataType() != 'distribution') {
+    if ($this->data->getDataType() != 'distribution') {
       return;
     }
 
     try {
       /* @var $datastoreService \Drupal\datastore\Service */
       $datastoreService = \Drupal::service('datastore.service');
-      $datastoreService->drop($entity->uuid());
+      $datastoreService->drop($this->data->getIdentifier());
     }
     catch (\Exception $e) {
       $this->setLoggerFactory(\Drupal::service('logger.factory'));
       $this->log('datastore', $e->getMessage());
     }
 
-    $metadata = $this->getMetaData();
+    $metadata = $this->data->getMetaData();
     $data = $metadata->data;
     if (isset($data->downloadURL)) {
       $url = $data->downloadURL;
@@ -74,7 +72,7 @@ class DataNodeLifeCycle extends AbstractDataNodeLifeCycle {
    * Private.
    */
   private function isDataStorable() : bool {
-    $metadata = $this->getMetaData();
+    $metadata = $this->data->getMetaData();
     $data = $metadata->data;
 
     if (isset($data->downloadURL) && isset($data->mediaType)) {

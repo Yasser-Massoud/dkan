@@ -5,19 +5,19 @@ services:
       - '@datastore.service.factory.resource'
       - '@datastore.service.factory.import'
       - '@queue'
-      - '@datastore.job_store_factory'
+      - '@dkan.common.job_store'
 
   datastore.service.factory.resource:
     class: \Drupal\datastore\Service\Factory\Resource
     arguments:
       - '@entity.repository'
       - '@file_system'
-      - '@datastore.job_store_factory'
+      - '@dkan.common.job_store'
 
   datastore.service.factory.import:
     class: \Drupal\datastore\Service\Factory\Import
     arguments:
-      - '@datastore.job_store_factory'
+      - '@dkan.common.job_store'
       - '@datastore.database_table_factory'
 
   datastore.logger_channel:
@@ -26,11 +26,6 @@ services:
 
   datastore.database_table_factory:
     class: \Drupal\datastore\Storage\DatabaseTableFactory
-    arguments:
-      - '@database'
-
-  datastore.job_store_factory:
-    class: \Drupal\datastore\Storage\JobStoreFactory
     arguments:
       - '@database'
 
