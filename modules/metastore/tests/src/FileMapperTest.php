@@ -3,6 +3,8 @@
 namespace Drupal\Tests\metastore;
 
 use Contracts\Mock\Storage\JsonObjectMemory;
+use Contracts\Mock\Storage\Memory;
+use Drupal\common\Storage\AbstractDatabaseTable;
 use Drupal\common\Storage\JobStoreFactory;
 use Drupal\common\Util\DrupalFiles;
 use Drupal\Core\DependencyInjection\Container;
@@ -14,6 +16,8 @@ use Drupal\metastore\FileMapper;
 use Drupal\Tests\common\Unit\Mocks\FileSystem;
 use Drupal\Tests\metastore\Unit\ProcessorMock;
 use MockChain\Chain;
+use MockChain\ReturnNull;
+use MockChain\Sequence;
 use PHPUnit\Framework\TestCase;
 
 /**
@@ -21,12 +25,27 @@ use PHPUnit\Framework\TestCase;
  */
 class FileMapperTest extends TestCase {
 
-  private $store;
+  public function test() {
+    $url = "http://blah.blah/file/blah.csv";
+
+    $sequence = (new Sequence($this))
+      ->add(new ReturnNull())
+      ->add($url);
+
+    $store = (new Chain($this))
+      ->add(AbstractDatabaseTable::class, 'retrieve', $sequence)
+      ->add(AbstractDatabaseTable::class, 'store', md5($url))
+      ->getMock();
+
+    $filemapper = new FileMapper($store);
+    [$uuid, $revision] = $filemapper->register($url);
+    $this->assertEquals($url, $filemapper->get($uuid));
+    $this->assertNotEmpty($revision);
+  }
+
+  /*private $store;
   private $container;
 
-  /**
-   *
-   */
   public function setUp() {
     parent::setUp();
 
@@ -36,9 +55,6 @@ class FileMapperTest extends TestCase {
     \Drupal::setContainer($this->getContainer());
   }
 
-  /**
-   *
-   */
   public function test() {
     $fileMapper = $this->getFileMapper();
     $url = 'http://test.test/filename.ext';
@@ -74,10 +90,7 @@ class FileMapperTest extends TestCase {
     $localUrl = $fileMapper->getLocalUrl($uuid);
     $this->assertEquals("http://local.local/{$fileSubPath}", $localUrl);
 
-    /**
- *Can not register the same URL twice.
- */
-    try {
+   try {
       $fileMapper->register($url);
       $this->assertTrue(FALSE);
     }
@@ -86,9 +99,7 @@ class FileMapperTest extends TestCase {
     }
   }
 
-  /**
-   *
-   */
+
   private function getFileMapper() {
     $this->store = new JsonObjectMemory();
 
@@ -107,9 +118,7 @@ class FileMapperTest extends TestCase {
     return $fileMapper;
   }
 
-  /**
-   *
-   */
+
   private function getContainer() {
     if (!$this->container) {
       $streamWrapperManager = new StreamWrapperManager();
@@ -135,27 +144,21 @@ class FileMapperTest extends TestCase {
       $this->container = $container;
     }
     return $this->container;
-  }
+  }*/
 
 }
-/**
- *
- */
-class Stringy {
+
+/*class Stringy {
   private $string;
 
-  /**
-   *
-   */
+
   public function __construct($string) {
     $this->string = $string;
   }
 
-  /**
-   *
-   */
+
   public function __toString() {
     return $this->string;
   }
 
-}
+}*/

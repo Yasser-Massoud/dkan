@@ -31,7 +31,7 @@ class Data extends AbstractData {
   /**
    * Private.
    */
-  private function datasetLoad() {
+  protected function datasetLoad() {
     $metadata = $this->data->getMetaData();
 
     // Dereference dataset properties.
@@ -46,7 +46,7 @@ class Data extends AbstractData {
    *
    * @todo Decouple "resource" functionality from specific dataset properties.
    */
-  private function distributionLoad() {
+  protected function distributionLoad() {
     $metadata = $this->data->getMetaData();
 
     $id = $metadata->data->downloadURL;
@@ -62,7 +62,7 @@ class Data extends AbstractData {
   /**
    * Private.
    */
-  private function datasetPresave() {
+  protected function datasetPresave() {
     $metadata = $this->data->getMetaData();
 
     $title = isset($metadata->title) ? $metadata->title : $metadata->name;
@@ -100,7 +100,7 @@ class Data extends AbstractData {
   /**
    * Private.
    */
-  private function distributionPresave() {
+  protected function distributionPresave() {
     $metadata = $this->data->getMetaData();
 
     if (isset($metadata->data->downloadURL)) {
@@ -109,8 +109,8 @@ class Data extends AbstractData {
       // Modify local urls to use our host/shost scheme.
       $downloadUrl = $this->hostify($downloadUrl);
 
-      // Register the url with the filemapper.
       try {
+        // Register the url with the filemapper.
         $downloadUrl = $this->getFileMapper()
           ->register($downloadUrl);
       }
