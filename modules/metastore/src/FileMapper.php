@@ -35,7 +35,7 @@ class FileMapper {
       'type' => 'source',
     ];
 
-    if (!$this->exists($data['uuid'], $data['type'])) {
+    if (!$this->urlExists($url)) {
 
       $this->store->store(json_encode((object) $data), $id);
       return [$data['uuid'], $data['revision']];
@@ -123,6 +123,13 @@ class FileMapper {
     $query->conditionByIsEqualTo('type', $type);
     $query->limitTo(1);
     return $query;
+  }
+
+  private function urlExists($url) {
+    $query = new Query();
+    $query->conditionByIsEqualTo('url', $url);
+    $results = $this->store->query($query);
+    return !empty($results);
   }
 
   /**

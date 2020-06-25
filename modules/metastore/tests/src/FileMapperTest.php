@@ -76,6 +76,16 @@ class FileMapperTest extends TestCase {
     $filemapper->registerNewPerspective($localUrl2, $uuid, 'local_url', $revisionNew);
     $this->assertEquals($localUrl, $filemapper->get($uuid, 'local_url', $revision));
     $this->assertEquals($localUrl2, $filemapper->get($uuid, 'local_url', $revisionNew));
+
+    // The file mapper should not register other perspectives as sources.
+    try {
+      $filemapper->register($localUrl);
+      $this->assertTrue(FALSE);
+    }
+    catch(\Exception $e) {
+      $this->assertEquals("URL already registered.", $e->getMessage());
+    }
+
   }
 
   /*private $store;
