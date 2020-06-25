@@ -2,10 +2,13 @@
 
 namespace Drupal\Tests\metastore;
 
+use Contracts\HydratableInterface;
 use Contracts\Mock\Storage\JsonObjectMemory;
 use Contracts\Mock\Storage\Memory;
 use Drupal\common\Storage\AbstractDatabaseTable;
+use Drupal\common\Storage\DatabaseTableInterface;
 use Drupal\common\Storage\JobStoreFactory;
+use Drupal\common\Storage\Query;
 use Drupal\common\Util\DrupalFiles;
 use Drupal\Core\DependencyInjection\Container;
 use Drupal\Core\DrupalKernel;
@@ -27,20 +30,52 @@ class FileMapperTest extends TestCase {
 
   public function test() {
     $url = "http://blah.blah/file/blah.csv";
+    $url2 = "http://blah.blah/file/blah2.csv";
+    $localUrl = "https://dkan.dkan/resources/file/blah.csv";
+    $localUrl2 = "https://dkan.dkan/resources/file/newblah.csv";
 
-    $sequence = (new Sequence($this))
-      ->add(new ReturnNull())
-      ->add($url);
-
-    $store = (new Chain($this))
-      ->add(AbstractDatabaseTable::class, 'retrieve', $sequence)
-      ->add(AbstractDatabaseTable::class, 'store', md5($url))
-      ->getMock();
+    $store = new DatabaseTableMock();
 
     $filemapper = new FileMapper($store);
+
+    // Registre a url.
     [$uuid, $revision] = $filemapper->register($url);
     $this->assertEquals($url, $filemapper->get($uuid));
     $this->assertNotEmpty($revision);
+
+    // Can't register the same url twice.
+    try {
+      $filemapper->register($url);
+      $this->assertTrue(FALSE);
+    }
+    catch(\Exception $e) {
+      $this->assertEquals("URL already registered.", $e->getMessage());
+    }
+
+    // Register a second url.
+    [$uuid2, $revision2] = $filemapper->register($url2);
+    $this->assertEquals($url2, $filemapper->get($uuid2));
+    $this->assertNotEmpty($revision2);
+
+    // Register a different perspective/type of the first url.
+    $filemapper->registerNewPerspective($localUrl, $uuid, 'local_url');
+    $this->assertEquals($url, $filemapper->get($uuid));
+    $this->assertEquals($localUrl, $filemapper->get($uuid, 'local_url'));
+
+    // Add a new revision of the first url.
+    $revisionNew = $filemapper->addRevision($uuid);
+    $this->assertGreaterThan($revision, $revisionNew);
+    $urlNew = $filemapper->get($uuid, 'source', $revisionNew);
+    $this->assertEquals($url, $urlNew);
+
+    // should be able to get local from first revision but not second.
+    $this->assertEquals($localUrl, $filemapper->get($uuid, 'local_url', $revision));
+    $this->assertNull($filemapper->get($uuid, 'local_url', $revisionNew));
+
+    // Add perspective/type to the new revision.
+    $filemapper->registerNewPerspective($localUrl2, $uuid, 'local_url', $revisionNew);
+    $this->assertEquals($localUrl, $filemapper->get($uuid, 'local_url', $revision));
+    $this->assertEquals($localUrl2, $filemapper->get($uuid, 'local_url', $revisionNew));
   }
 
   /*private $store;
@@ -162,3 +197,64 @@ class FileMapperTest extends TestCase {
   }
 
 }*/
+
+class DatabaseTableMock implements DatabaseTableInterface {
+  private $store = [];
+
+  public function retrieveAll(): array {
+  }
+
+  public function storeMultiple(array $data) {
+    // TODO: Implement storeMultiple() method.
+  }
+
+  public function count(): int {
+    // TODO: Implement count() method.
+  }
+
+  public function destroy() {
+    // TODO: Implement destroy() method.
+  }
+
+  public function query(Query $query) {
+    $storeCopy = $this->store;
+
+    foreach ($query->conditions as $property => $value) {
+      $storeCopy = array_filter($storeCopy, function ($item) use ($property, $value) {
+        return $item[$property] == $value;
+      });
+    }
+
+    $sortProperty = reset($query->sort['DESC']);
+
+    if ($sortProperty) {
+      usort($storeCopy, function ($a, $b) use ($sortProperty) {
+        return strcmp($a[$sortProperty], $b[$sortProperty]);
+      });
+    }
+
+    return $storeCopy;
+  }
+
+  public function remove(string $id) {
+    // TODO: Implement remove() method.
+  }
+
+  public function retrieve(string $id) {
+    // TODO: Implement retrieve() method.
+  }
+
+  public function setSchema($schema) {
+    // TODO: Implement setSchema() method.
+  }
+
+  public function getSchema() {
+    // TODO: Implement getSchema() method.
+  }
+
+  public function store($data, string $id = NULL): string {
+    $this->store[$id] = (array) json_decode($data);
+    return $id;
+  }
+
+}

@@ -10,7 +10,7 @@ use Drupal\datastore\Storage\DatabaseTableFactory;
 use Drupal\datastore\SqlEndpoint\Helper\GetStringsFromStateMachineExecution;
 use SqlParser\SqlParser;
 use Symfony\Component\DependencyInjection\ContainerInterface;
-use Drupal\datastore\Storage\Query;
+use Drupal\common\Storage\Query;
 use Maquina\StateMachine\Machine;
 
 /**

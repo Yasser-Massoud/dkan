@@ -9,7 +9,7 @@ use Drupal\Core\Database\Query\Insert;
 use Drupal\Core\Database\Query\Select;
 use Drupal\Core\Database\Schema;
 use Drupal\Core\Database\Statement;
-use Drupal\datastore\Storage\Query;
+use Drupal\common\Storage\Query;
 use MockChain\Chain;
 use MockChain\Sequence;
 use Drupal\datastore\Storage\DatabaseTable;

@@ -2,27 +2,22 @@
 
 namespace Drupal\metastore;
 
-use Drupal\Core\File\FileSystemInterface;
-use Drupal\common\Storage\JobStoreFactory;
-use Drupal\common\Util\DrupalFiles;
-use FileFetcher\FileFetcher;
-use FileFetcher\Processor\Remote;
-use Procrastinator\Result;
+use Drupal\common\Storage\DatabaseTableInterface;
+use Drupal\common\Storage\Query;
+
 
 /**
  * FileMapper.
  */
 class FileMapper {
 
-  /**
-   * @var \Contracts\StorerInterface | \Contracts\RetrieverInterface
-   */
+
   private $store;
 
   /**
    * Constructor.
    */
-  public function __construct($store) {
+  public function __construct(DatabaseTableInterface $store) {
     $this->store = $store;
   }
 
@@ -30,35 +25,112 @@ class FileMapper {
    * Register a new url for mapping.
    */
   public function register(string $url) : array {
-    $uuid = md5($url);
 
-    if (!$this->exists($uuid)) {
-      /*$directory = $this->getLocalDirectory($uuid);
-      $this->drupalFiles->getFilesystem()
-        ->prepareDirectory($directory, FileSystemInterface::CREATE_DIRECTORY);
+    $id = md5($url);
 
-      $this->getFileFetcher($uuid, $url);*/
+    $data = [
+      'uuid' => $id,
+      'revision' => time(),
+      'url' => $url,
+      'type' => 'source',
+    ];
 
-      $this->store->store($url, $uuid);
-      return [$uuid, '12345'];
+    if (!$this->exists($data['uuid'], $data['type'])) {
+
+      $this->store->store(json_encode((object) $data), $id);
+      return [$data['uuid'], $data['revision']];
     }
     throw new \Exception("URL already registered.");
   }
 
+  public function registerNewPerspective($url, $uuid, $type, $revision = null) {
+    if ($this->exists($uuid, 'source', $revision)) {
+      if (!$this->exists($uuid, $type, $revision)) {
+        $item = $this->getFull($uuid, 'source', $revision);
+        $item['type'] = $type;
+        $item['url'] = $url;
+        $this->store->store(json_encode((object) $item), md5($item['url'] . $type));
+      }
+    }
+    else {
+      throw new \Exception("A URL with uuid {$uuid} was not found.");
+    }
+  }
+
+  public function addRevision($uuid) {
+    if ($this->exists($uuid, 'source')) {
+      $item = $this->getLatestRevision($uuid, 'source');
+      $newRevision = time();
+      if ($newRevision == $item['revision']) {
+        $newRevision++;
+      }
+      $item['revision'] = $newRevision;
+      $this->store->store(json_encode((object) $item), md5($item['url'] . $item['revision']));
+      return $item['revision'];
+    }
+    throw new \Exception("Url with uuid {$uuid} does not exist");
+  }
 
   /**
-   * Retrieve the originally registered URL.
+   * Retrieve.
    */
   public function get(string $uuid, $type = 'source', $revision = null) {
-    return $this->store->retrieve($uuid);
+    $data = $this->getFull($uuid, $type, $revision);
+    return ($data != FALSE) ? $data['url'] : NULL;
+  }
+
+  private function getFull(string $uuid, $type, $revision) {
+    if (!$revision) {
+      $data = $this->getLatestRevision($uuid, $type);
+    }
+    else {
+      $data = $this->getRevision($uuid, $type, $revision);
+    }
+    return $data;
+  }
+
+  /**
+   * Private.
+   *
+   * @return array || False
+   */
+  private function getLatestRevision($uuid, $type) {
+    $query = $this->getCommonQuery($uuid, $type);
+    $query->sortByDescending('revision');
+    $items = $this->store->query($query);
+    return reset($items);
+  }
+
+  /**
+   * Private.
+   *
+   * @return array || False
+   */
+  private function getRevision($uuid, $type, $revision)  {
+    $query = $this-> getCommonQuery($uuid, $type);
+    $query->conditionByIsEqualTo('revision', $revision);
+    $items = $this->store->query($query);
+    return reset($items);
   }
 
   /**
    * Private.
    */
-  private function exists($uuid) {
-    $instance = $this->store->retrieve($uuid);
-    return isset($instance);
+  private function getCommonQuery($uuid, $type) {
+    $query = new Query();
+    $query->properties = ['uuid', 'revision', 'type', 'url'];
+    $query->conditionByIsEqualTo('uuid', $uuid);
+    $query->conditionByIsEqualTo('type', $type);
+    $query->limitTo(1);
+    return $query;
+  }
+
+  /**
+   * Private.
+   */
+  private function exists($uuid, $type, $revision = null) {
+    $item = $this->get($uuid, $type, $revision);
+    return isset($item) ? true : false;
   }
 
   /**
@@ -96,5 +168,11 @@ class FileMapper {
     $publicPath = $this->drupalFiles->getPublicFilesDirectory();
     return $publicPath . '/resources/' . $uuid;
   }*/
+
+  /*$directory = $this->getLocalDirectory($uuid);
+      $this->drupalFiles->getFilesystem()
+        ->prepareDirectory($directory, FileSystemInterface::CREATE_DIRECTORY);
+
+      $this->getFileFetcher($uuid, $url);*/
 
 }

@@ -3,7 +3,6 @@
 namespace Drupal\common\Storage;
 
 use Drupal\Core\Database\Query\Select;
-use Drupal\datastore\Storage\Query;
 
 /**
  * Class QueryToQueryHelperTrait.

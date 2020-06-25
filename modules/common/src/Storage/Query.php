@@ -1,6 +1,6 @@
 <?php
 
-namespace Drupal\datastore\Storage;
+namespace Drupal\common\Storage;
 
 use Contracts\SorterInterface;
 use Contracts\ConditionerInterface;
