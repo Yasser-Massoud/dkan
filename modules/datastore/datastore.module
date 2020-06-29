@@ -10,17 +10,6 @@ use Drupal\common\Exception\DataNodeLifeCycleEntityValidationException;
 use Drupal\metastore\NodeWrapper\Data;
 
 /**
- * Implements hook_ENTITY_TYPE_insert().
- */
-function datastore_node_insert(EntityInterface $entity) {
-  try {
-    (new LifeCycle(new Data($entity)))->insert();
-  }
-  catch (DataNodeLifeCycleEntityValidationException $e) {
-  }
-}
-
-/**
  * Implements hook_ENTITY_TYPE_predelete().
  */
 function datastore_node_predelete(EntityInterface $entity) {

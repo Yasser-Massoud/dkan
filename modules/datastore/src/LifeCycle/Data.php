@@ -12,30 +12,6 @@ class Data extends AbstractData {
   use LoggerTrait;
 
   /**
-   * Insert.
-   *
-   * If a CSV resource is being saved a job should be created.
-   */
-  public function insert() {
-    if ($this->data->getDataType() != 'distribution') {
-      return;
-    }
-
-    if ($this->isDataStorable()) {
-      try {
-        /* @var $datastoreService \Drupal\datastore\Service */
-        $datastoreService = \Drupal::service('datastore.service');
-        $datastoreService->import($this->data->getIdentifier(), TRUE);
-      }
-      catch (\Exception $e) {
-        $this->setLoggerFactory(\Drupal::service('logger.factory'));
-        $this->log('datastore', $e->getMessage());
-      }
-    }
-
-  }
-
-  /**
    * Predelete.
    *
    * When a resource is deleted, any incomplete import jobs should be removed.
@@ -66,23 +42,6 @@ class Data extends AbstractData {
       $fileSystemService = \Drupal::service('file_system');
       $fileSystemService->delete($path);
     }
-  }
-
-  /**
-   * Private.
-   */
-  private function isDataStorable() : bool {
-    $metadata = $this->data->getMetaData();
-    $data = $metadata->data;
-
-    if (isset($data->downloadURL) && isset($data->mediaType)) {
-      return in_array($data->mediaType, [
-        'text/csv',
-        'text/tab-separated-values',
-      ]);
-    }
-
-    return FALSE;
   }
 
 }

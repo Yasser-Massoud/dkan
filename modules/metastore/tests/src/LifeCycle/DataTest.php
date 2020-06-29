@@ -2,7 +2,6 @@
 
 namespace Drupal\Tests\metastore\LifeCycle;
 
-use Contracts\Mock\Storage\Memory;
 use Drupal\Component\DependencyInjection\Container;
 use Drupal\Component\EventDispatcher\ContainerAwareEventDispatcher;
 use Drupal\metastore\FileMapper;
