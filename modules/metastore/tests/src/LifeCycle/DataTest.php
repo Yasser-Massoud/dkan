@@ -49,6 +49,7 @@ class DataTest extends TestCase {
     $metadata = $dataChain->getStoredInput("metadata");
     $token = UrlHostTokenResolver::TOKEN;
     $url = "http://{$token}/some/path/blah";
+    $this->assertTrue(is_array($metadata[0]->data->downloadURL));
     $this->assertEquals(md5($url), $metadata[0]->data->downloadURL[0]);
   }
 

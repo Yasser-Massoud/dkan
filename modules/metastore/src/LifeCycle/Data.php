@@ -2,6 +2,7 @@
 
 namespace Drupal\metastore\LifeCycle;
 
+use Dkan\Datastore\Resource;
 use Drupal\common\UrlHostTokenResolver;
 use Drupal\metastore\Reference\Dereferencer;
 use Drupal\metastore\Traits\FileMapperTrait;
@@ -117,10 +118,15 @@ class Data extends AbstractData {
       // Modify local urls to use our host/shost scheme.
       $downloadUrl = $this->hostify($downloadUrl);
 
+      $mimeType = "text/plain";
+      if (isset($metadata->data->mediaType)) {
+        $mimeType = $metadata->data->mediaType;
+      }
+
       try {
         // Register the url with the filemapper.
         $downloadUrl = $this->getFileMapper()
-          ->register($downloadUrl);
+          ->register(new Resource(md5($downloadUrl), $downloadUrl, $mimeType));
       }
       catch (\Exception $e) {
       }
