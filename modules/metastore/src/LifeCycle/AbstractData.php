@@ -14,7 +14,9 @@ abstract class AbstractData {
 
   protected function go($stage) {
     $method = "{$this->data->getDataType()}{$stage}";
-    $this->{$method}();
+    if (method_exists($this, $method)) {
+      $this->{$method}();
+    }
   }
 
 }

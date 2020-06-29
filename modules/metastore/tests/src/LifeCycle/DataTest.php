@@ -4,7 +4,9 @@ namespace Drupal\Tests\metastore\LifeCycle;
 
 use Contracts\Mock\Storage\Memory;
 use Drupal\Component\DependencyInjection\Container;
+use Drupal\Component\EventDispatcher\ContainerAwareEventDispatcher;
 use Drupal\metastore\FileMapper;
+use Drupal\Tests\metastore\Unit\DatabaseTableMock;
 use MockChain\Chain;
 use PHPUnit\Framework\TestCase;
 use Drupal\metastore\NodeWrapper\Data as Wrapper;
@@ -35,7 +37,10 @@ class DataTest extends TestCase {
 
     $dataChain = $this->getDataChain();
 
-    $filemapper = new FileMapper(new Memory());
+    $filemapper = new FileMapper(
+      new DatabaseTableMock(),
+      new ContainerAwareEventDispatcher(new Container())
+    );
 
     $lifeCycle = new Data($dataChain->getMock());
     $lifeCycle->setFileMapper($filemapper);
@@ -44,7 +49,7 @@ class DataTest extends TestCase {
     $metadata = $dataChain->getStoredInput("metadata");
     $token = UrlHostTokenResolver::TOKEN;
     $url = "http://{$token}/some/path/blah";
-    $this->assertEquals(md5($url), $metadata[0]->data->downloadURL);
+    $this->assertEquals(md5($url), $metadata[0]->data->downloadURL[0]);
   }
 
   private function getContainer() {

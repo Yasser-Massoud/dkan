@@ -5,15 +5,16 @@
  */
 
 use Drupal\Core\Entity\EntityInterface;
-use Drupal\datastore\DataNodeLifeCycle;
+use Drupal\datastore\LifeCycle\Data as LifeCycle;
 use Drupal\common\Exception\DataNodeLifeCycleEntityValidationException;
+use Drupal\metastore\NodeWrapper\Data;
 
 /**
  * Implements hook_ENTITY_TYPE_insert().
  */
 function datastore_node_insert(EntityInterface $entity) {
   try {
-    (new DataNodeLifeCycle($entity))->insert();
+    (new LifeCycle(new Data($entity)))->insert();
   }
   catch (DataNodeLifeCycleEntityValidationException $e) {
   }
@@ -24,7 +25,7 @@ function datastore_node_insert(EntityInterface $entity) {
  */
 function datastore_node_predelete(EntityInterface $entity) {
   try {
-    (new DataNodeLifeCycle($entity))->predelete();
+    (new LifeCycle(new Data($entity)))->predelete();
   }
   catch (DataNodeLifeCycleEntityValidationException $e) {
   }

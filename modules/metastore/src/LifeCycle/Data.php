@@ -49,9 +49,17 @@ class Data extends AbstractData {
   protected function distributionLoad() {
     $metadata = $this->data->getMetaData();
 
-    $id = $metadata->data->downloadURL;
-    if ($id) {
-      $metadata->data->downloadURL = $this->getFileMapper()->getSource($id);
+    $fileMapperInfo = $metadata->data->downloadURL;
+    \Drupal::service('logger.channel.default')->notice(json_encode($fileMapperInfo));
+    if (is_array($fileMapperInfo)) {
+      $url = $this->getFileMapper()->get($fileMapperInfo[0], 'source', $fileMapperInfo[1]);
+      \Drupal::service('logger.channel.default')->notice(json_encode($url));
+      if ($url) {
+        $metadata->data->downloadURL = $url;
+      }
+      else {
+        $metadata->data->downloadURL = "";
+      }
     }
 
     $metadata->data->downloadURL = UrlHostTokenResolver::resolve($metadata->data->downloadURL);
@@ -88,13 +96,13 @@ class Data extends AbstractData {
     $this->data->setMetadata($metadata);
 
     // Check for possible orphan property references when updating a dataset.
-    if ($raw = $this->data->getRawMetadata()) {
+    /*if ($raw = $this->data->getRawMetadata()) {
       $orphanChecker = \Drupal::service("metastore.orphan_checker");
       $orphanChecker->processReferencesInUpdatedDataset(
         $raw,
         $metadata
       );
-    }
+    }*/
   }
 
   /**

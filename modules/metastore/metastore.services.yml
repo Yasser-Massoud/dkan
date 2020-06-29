@@ -50,9 +50,13 @@ services:
   dkan.metastore.file_mapper:
     class: \Drupal\metastore\FileMapper
     arguments:
-      - '@dkan.common.job_store'
-      - '@dkan.common.drupal_files'
-      - '@stream_wrapper_manager'
+      - '@dkan.metastore.file_mapper_database_table'
+      - '@event_dispatcher'
+
+  dkan.metastore.file_mapper_database_table:
+    class: \Drupal\metastore\Storage\FileMapperDatabaseTable
+    arguments:
+      - '@database'
 
   # @expectedDeprecation
   metastore.service:

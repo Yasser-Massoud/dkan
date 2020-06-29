@@ -6,7 +6,7 @@
 
 use Drupal\Core\Entity\EntityTypeInterface;
 use Drupal\Core\Entity\EntityInterface;
-use Drupal\metastore\Data;
+use Drupal\metastore\LifeCycle\Data as LifeCycle;
 use Drupal\metastore\NodeWrapper\Data;
 use Drupal\metastore\Reference\Dereferencer;
 use Drupal\common\Exception\DataNodeLifeCycleEntityValidationException;
@@ -94,7 +94,7 @@ function dereferencing_method() : int {
  */
 function metastore_get_data_node_lifecycle($entity) {
   $data = new Data($entity);
-  $lifeCycle = new Data($data);
+  $lifeCycle = new LifeCycle($data);
   $lifeCycle->setFileMapper(\Drupal::service('dkan.metastore.file_mapper'));
   return $lifeCycle;
 }

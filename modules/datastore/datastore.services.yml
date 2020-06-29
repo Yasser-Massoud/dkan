@@ -35,3 +35,9 @@ services:
       - '@config.factory'
       - '@datastore.database_table_factory'
       - '@datastore.service.factory.resource'
+
+  dkan.datastore.event_subscriber:
+    class: \Drupal\datastore\EventSubscriber\Subscriber
+    tags:
+      - { name: event_subscriber }
+

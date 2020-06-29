@@ -2,54 +2,69 @@
 
 namespace Drupal\metastore;
 
+use Dkan\Datastore\Resource;
 use Drupal\common\Storage\DatabaseTableInterface;
 use Drupal\common\Storage\Query;
-
+use Drupal\Component\EventDispatcher\ContainerAwareEventDispatcher;
+use Drupal\metastore\Events\Registration;
 
 /**
  * FileMapper.
  */
 class FileMapper {
 
+  const EVENT_REGISTRATION = 'dkan_metastore_filemapper_register';
 
   private $store;
+  private $eventDispatcher;
 
   /**
    * Constructor.
    */
-  public function __construct(DatabaseTableInterface $store) {
+  public function __construct(DatabaseTableInterface $store, ContainerAwareEventDispatcher $eventDispatcher) {
     $this->store = $store;
+    $this->eventDispatcher = $eventDispatcher;
   }
 
   /**
    * Register a new url for mapping.
+   *
+   * @todo the Resource class currently lives in datastore, we should move it
+   * to a more neutral place.
    */
-  public function register(string $url) : array {
-
-    $id = md5($url);
-
+  public function register(Resource $resource) : array {
+    $id = $resource->getId();
+    $url = $resource->getFilePath();
     $data = [
       'uuid' => $id,
       'revision' => time(),
       'url' => $url,
       'type' => 'source',
+      'resource' => $resource
     ];
 
     if (!$this->urlExists($url)) {
 
       $this->store->store(json_encode((object) $data), $id);
+      $this->eventDispatcher->dispatch(self::EVENT_REGISTRATION, new Registration($data));
+
       return [$data['uuid'], $data['revision']];
     }
     throw new \Exception("URL already registered.");
   }
 
-  public function registerNewPerspective($url, $uuid, $type, $revision = null) {
+  public function registerNewPerspective(Resource $resource, $type, $revision = null) {
+    $uuid = $resource->getId();
     if ($this->exists($uuid, 'source', $revision)) {
       if (!$this->exists($uuid, $type, $revision)) {
-        $item = $this->getFull($uuid, 'source', $revision);
-        $item['type'] = $type;
-        $item['url'] = $url;
-        $this->store->store(json_encode((object) $item), md5($item['url'] . $type));
+        $original = $this->getFull($uuid, 'source', $revision);
+        $item = clone $original;
+        $item->type = $type;
+        $item->url = $resource->getFilePath();
+        $item->resource = $resource;
+
+        $this->eventDispatcher->dispatch(self::EVENT_REGISTRATION, new Registration($item));
+        $this->store->store(json_encode((object) $item), md5($item->url . $type));
       }
     }
     else {
@@ -59,14 +74,18 @@ class FileMapper {
 
   public function addRevision($uuid) {
     if ($this->exists($uuid, 'source')) {
-      $item = $this->getLatestRevision($uuid, 'source');
+      $original = $this->getLatestRevision($uuid, 'source');
+      $item = clone $original;
       $newRevision = time();
-      if ($newRevision == $item['revision']) {
+      if ($newRevision == $item->revision) {
         $newRevision++;
       }
-      $item['revision'] = $newRevision;
-      $this->store->store(json_encode((object) $item), md5($item['url'] . $item['revision']));
-      return $item['revision'];
+      $item->revision = $newRevision;
+
+      $this->eventDispatcher->dispatch(self::EVENT_REGISTRATION, new Registration($item));
+      $this->store->store(json_encode((object) $item), md5($item->url . $item->revision));
+
+      return $item->revision;
     }
     throw new \Exception("Url with uuid {$uuid} does not exist");
   }
@@ -74,9 +93,9 @@ class FileMapper {
   /**
    * Retrieve.
    */
-  public function get(string $uuid, $type = 'source', $revision = null) {
+  public function get(string $uuid, $type = 'source', $revision = null): ?Resource {
     $data = $this->getFull($uuid, $type, $revision);
-    return ($data != FALSE) ? $data['url'] : NULL;
+    return ($data != FALSE) ? Resource::hydrate(json_encode($data->resource)) : NULL;
   }
 
   private function getFull(string $uuid, $type, $revision) {
@@ -92,7 +111,7 @@ class FileMapper {
   /**
    * Private.
    *
-   * @return array || False
+   * @return object || False
    */
   private function getLatestRevision($uuid, $type) {
     $query = $this->getCommonQuery($uuid, $type);
@@ -104,7 +123,7 @@ class FileMapper {
   /**
    * Private.
    *
-   * @return array || False
+   * @return object || False
    */
   private function getRevision($uuid, $type, $revision)  {
     $query = $this-> getCommonQuery($uuid, $type);
