@@ -2,9 +2,10 @@
 
 namespace Drupal\datastore\SqlEndpoint;
 
+use Drupal\common\Resource;
 use Drupal\Core\Config\ConfigFactory;
 use Drupal\Core\DependencyInjection\ContainerInjectionInterface;
-use Drupal\datastore\Service\Factory\Resource;
+use Drupal\datastore\Service\ResourceLocalizer;
 use Drupal\datastore\Storage\DatabaseTable;
 use Drupal\datastore\Storage\DatabaseTableFactory;
 use Drupal\datastore\SqlEndpoint\Helper\GetStringsFromStateMachineExecution;
@@ -19,7 +20,7 @@ use Maquina\StateMachine\Machine;
 class Service implements ContainerInjectionInterface {
   private $configFactory;
   private $databaseTableFactory;
-  private $resourceServiceFactory;
+  private $resourceLocalizer;
 
   /**
    * Inherited.
@@ -29,18 +30,18 @@ class Service implements ContainerInjectionInterface {
   public static function create(ContainerInterface $container) {
     return new static(
       $container->get('config.factory'),
-      $container->get('datastore.database_table_factory'),
-      $container->get('datastore.service.factory.resource')
+      $container->get('dkan.datastore.database_table_factory'),
+      $container->get('dkan.datastore.service.resource_localizer')
     );
   }
 
   /**
    * Constructor.
    */
-  public function __construct(ConfigFactory $configFactory, DatabaseTableFactory $databaseTableFactory, Resource $resourceServiceFactory) {
+  public function __construct(ConfigFactory $configFactory, DatabaseTableFactory $databaseTableFactory, ResourceLocalizer $resourceLocalizer) {
     $this->configFactory = $configFactory;
     $this->databaseTableFactory = $databaseTableFactory;
-    $this->resourceServiceFactory = $resourceServiceFactory;
+    $this->resourceLocalizer = $resourceLocalizer;
   }
 
   /**
@@ -103,16 +104,15 @@ class Service implements ContainerInjectionInterface {
       throw new \Exception("Resource not found.");
     }
 
-    return $this->databaseTableFactory->getInstance($resource->getId(), ['resource' => $resource]);
+    return $this->databaseTableFactory->getInstance($resource->getUniqueIdentifier(), ['resource' => $resource]);
   }
 
   /**
    * Private.
    */
-  private function getResource(string $uuid) {
-    /* @var $resourceService \Drupal\datastore\Service\Resource */
-    $resourceService = $this->resourceServiceFactory->getInstance($uuid);
-    return $resourceService->get();
+  private function getResource(string $identifier): Resource {
+    $source = $this->resourceLocalizer->getFileMapper()->get($identifier);
+    return $this->resourceLocalizer->get($source);
   }
 
   /**

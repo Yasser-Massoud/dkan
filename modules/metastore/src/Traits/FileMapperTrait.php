@@ -1,8 +1,12 @@
 <?php
+
 namespace Drupal\metastore\Traits;
 
 use Drupal\metastore\FileMapper;
 
+/**
+ *
+ */
 trait FileMapperTrait {
   private $fileMapper;
 

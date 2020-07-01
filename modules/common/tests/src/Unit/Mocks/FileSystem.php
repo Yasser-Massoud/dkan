@@ -19,7 +19,7 @@ class FileSystem extends DrupalFileSystem {
    */
   public function __construct(TestCase $testCase, ContainerInterface $container) {
     $logger = (new Chain($testCase))
-      ->add(LoggerInterface::class, 'blah', NULL)
+      ->add(LoggerInterface::class)
       ->getMock();
 
     parent::__construct($container->get('stream_wrapper_manager'), Settings::getInstance(), $logger);

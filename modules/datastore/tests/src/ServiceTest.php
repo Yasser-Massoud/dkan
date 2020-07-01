@@ -1,37 +1,36 @@
 <?php
 
-use Dkan\Datastore\Resource;
-use Drupal\Component\DependencyInjection\Container;
-use Drupal\Core\Queue\Memory;
+namespace Drupal\Tests\datastore;
+
+use Drupal\common\Resource;
 use Drupal\Core\Queue\QueueFactory;
-use Drupal\common\Storage\JobStore;
-use Drupal\common\Storage\JobStoreFactory;
 use Drupal\datastore\Service;
 use Drupal\datastore\Service\Factory\Import as ImportServiceFactory;
-use Drupal\datastore\Service\Factory\Resource as ResourceServiceFactory;
 use Drupal\datastore\Service\Import as ImportService;
-use Drupal\datastore\Service\Resource as ResourceService;
-use Drupal\datastore\Storage\DatabaseTable;
-use MockChain\Chain;
-use MockChain\Options;
+use Drupal\metastore\FileMapper;
+use Drupal\Tests\common\Traits\ServiceCheckTrait;
+use FileFetcher\FileFetcher;
 use PHPUnit\Framework\TestCase;
 use Procrastinator\Result;
+use Drupal\datastore\Service\ResourceLocalizer;
 
 /**
  *
  */
 class ServiceTest extends TestCase {
+  use ServiceCheckTrait;
 
   /**
    *
    */
   public function testImport() {
 
-    $chain = (new Chain($this))
-      ->add(Container::class, "get", $this->getContainerOptions())
-      ->add(ResourceServiceFactory::class, "getInstance", ResourceService::class)
-      ->add(ResourceService::class, "get", new Resource("1", "file:///hello.txt", "text/csv"))
-      ->add(ResourceService::class, "getResult", new Result())
+    $chain = $this->getContainerChainForService('dkan.datastore.service')
+      ->add(ResourceLocalizer::class, 'getFileMapper', FileMapper::class)
+      ->add(ResourceLocalizer::class, 'localize', NULL)
+      ->add(ResourceLocalizer::class, 'getFileFetcher', FileFetcher::class)
+      ->add(FileFetcher::class, 'run', Result::class)
+      ->add(FileMapper::class, 'get', Resource::class)
       ->add(ImportServiceFactory::class, "getInstance", ImportService::class)
       ->add(ImportService::class, "import", NULL)
       ->add(ImportService::class, "getResult", new Result())
@@ -43,59 +42,40 @@ class ServiceTest extends TestCase {
     $this->assertTrue(is_array($result));
   }
 
-  /**
-   *
-   */
-  public function testDeferredImport() {
+  /*public function testDeferredImport() {
 
-    $chain = (new Chain($this))
-      ->add(Container::class, "get", $this->getContainerOptions())
-      ->add(ResourceServiceFactory::class, "getInstance", ResourceService::class)
-      ->add(ResourceService::class, "get", new Resource("1", "file:///hello.txt", "text/csv"))
-      ->add(ImportServiceFactory::class, "getInstance", ImportService::class)
-      ->add(QueueFactory::class, "get", Memory::class)
-      ->add(Memory::class, "createItem", "123");
+  $chain = (new Chain($this))
+  ->add(Container::class, "get", $this->getContainerOptions())
+  ->add(ResourceServiceFactory::class, "getInstance", ResourceService::class)
+  ->add(ResourceService::class, "get", new Resource("1", "file:///hello.txt", "text/csv"))
+  ->add(ImportServiceFactory::class, "getInstance", ImportService::class)
+  ->add(QueueFactory::class, "get", Memory::class)
+  ->add(Memory::class, "createItem", "123");
 
-    $service = Service::create($chain->getMock());
-    $result = $service->import("1", TRUE);
+  $service = Service::create($chain->getMock());
+  $result = $service->import("1", TRUE);
 
-    $this->assertTrue(is_array($result));
+  $this->assertTrue(is_array($result));
   }
 
-  /**
-   *
-   */
   public function testDrop() {
-    $container = (new Chain($this))
-      ->add(Container::class, "get", $this->getContainerOptions())
-      ->add(QueueFactory::class, "get", NULL)
-      ->add(ResourceServiceFactory::class, "getInstance", ResourceService::class)
-      ->add(ResourceService::class, "get", new Resource("1", "file:///hello.txt", "text/csv"))
-      ->add(ResourceService::class, "remove", NULL)
-      ->add(ImportServiceFactory::class, "getInstance", ImportService::class)
-      ->add(ImportService::class, "getStorage", DatabaseTable::class)
-      ->add(DatabaseTable::class, "destroy", NULL)
-      ->add(JobStoreFactory::class, "getInstance", JobStore::class)
-      ->add(JobStore::class, "remove", NULL)
-      ->getMock();
+  $container = (new Chain($this))
+  ->add(Container::class, "get", $this->getContainerOptions())
+  ->add(QueueFactory::class, "get", NULL)
+  ->add(ResourceServiceFactory::class, "getInstance", ResourceService::class)
+  ->add(ResourceService::class, "get", new Resource("1", "file:///hello.txt", "text/csv"))
+  ->add(ResourceService::class, "remove", NULL)
+  ->add(ImportServiceFactory::class, "getInstance", ImportService::class)
+  ->add(ImportService::class, "getStorage", DatabaseTable::class)
+  ->add(DatabaseTable::class, "destroy", NULL)
+  ->add(JobStoreFactory::class, "getInstance", JobStore::class)
+  ->add(JobStore::class, "remove", NULL)
+  ->getMock();
 
-    $service = Service::create($container);
-    $service->drop("1");
+  $service = Service::create($container);
+  $service->drop("1");
 
-    $this->assertTrue(TRUE);
-  }
-
-  /**
-   *
-   */
-  private function getContainerOptions() {
-    return (new Options())
-      ->add('datastore.service.factory.resource', ResourceServiceFactory::class)
-      ->add('datastore.service.factory.import', ImportServiceFactory::class)
-      ->add('queue', QueueFactory::class)
-      ->add('datastore.job_store_factory', JobStoreFactory::class)
-      ->index(0);
-
-  }
+  $this->assertTrue(TRUE);
+  }*/
 
 }

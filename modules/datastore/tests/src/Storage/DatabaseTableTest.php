@@ -1,13 +1,13 @@
 <?php
 
-namespace Drupal\Tests\datastore\Unit\Storage;
+namespace Drupal\Tests\datastore\Storage;
 
 use Dkan\Datastore\Resource;
 use Drupal\Core\Database\Connection;
 use Drupal\Core\Database\DatabaseExceptionWrapper;
 use Drupal\Core\Database\Query\Insert;
 use Drupal\Core\Database\Query\Select;
-use Drupal\Core\Database\Schema;
+use Drupal\Core\Database\Driver\mysql\Schema;
 use Drupal\Core\Database\Statement;
 use Drupal\common\Storage\Query;
 use MockChain\Chain;
@@ -375,7 +375,8 @@ class DatabaseTableTest extends TestCase {
       ->add(Schema::class, "tableExists", TRUE)
       ->add(Schema::class, 'getComment',
         (new Sequence())->add('First Name')->add('lAST nAME')
-      );
+      )
+      ->add(Schema::class, 'dropTable', NULL);
 
     return $chain;
   }

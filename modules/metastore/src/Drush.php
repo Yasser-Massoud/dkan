@@ -39,7 +39,7 @@ class Drush extends DrushCommands {
   public function publish(string $uuid) {
     try {
       $this->storage->setSchema('dataset')->publish($uuid);
-      $this->logger()->success("Dataset {$uuid} published.");
+      $this->logger()->info("Dataset {$uuid} published.");
     }
     catch (\Exception $e) {
       $this->logger()->error("Error while attempting to publish dataset {$uuid}: " . $e->getMessage());

@@ -2,17 +2,17 @@ services:
   dkan.datastore.service:
     class: \Drupal\datastore\Service
     arguments:
-      - '@datastore.service.factory.resource'
+      - '@dkan.datastore.service.resource_localizer'
       - '@datastore.service.factory.import'
       - '@queue'
       - '@dkan.common.job_store'
 
-  dkan.datastore.service.factory.resource:
-    class: \Drupal\datastore\Service\Factory\Resource
+  dkan.datastore.service.resource_localizer:
+    class: \Drupal\datastore\Service\ResourceLocalizer
     arguments:
-      - '@entity.repository'
-      - '@file_system'
+      - '@dkan.metastore.file_mapper'
       - '@dkan.common.job_store'
+      - '@dkan.common.drupal_files'
 
   dkan.datastore.service.factory.import:
     class: \Drupal\datastore\Service\Factory\Import
@@ -33,8 +33,8 @@ services:
     class: \Drupal\datastore\SqlEndpoint\Service
     arguments:
       - '@config.factory'
-      - '@datastore.database_table_factory'
-      - '@datastore.service.factory.resource'
+      - '@dkan.datastore.database_table_factory'
+      - '@dkan.datastore.service.resource_localizer'
 
   dkan.datastore.event_subscriber:
     class: \Drupal\datastore\EventSubscriber\Subscriber
@@ -51,32 +51,24 @@ services:
       - '@queue'
       - '@dkan.common.job_store'
 
-    datastore.service.factory.resource:
-      class: \Drupal\datastore\Service\Factory\Resource
-      arguments:
-        - '@entity.repository'
-        - '@file_system'
-        - '@dkan.common.job_store'
+  datastore.service.factory.import:
+    class: \Drupal\datastore\Service\Factory\Import
+    arguments:
+      - '@dkan.common.job_store'
+      - '@datastore.database_table_factory'
 
-    datastore.service.factory.import:
-      class: \Drupal\datastore\Service\Factory\Import
-      arguments:
-        - '@dkan.common.job_store'
-        - '@datastore.database_table_factory'
+  datastore.logger_channel:
+    parent: logger.channel_base
+    arguments: ['datastore']
 
-    datastore.logger_channel:
-      parent: logger.channel_base
-      arguments: ['datastore']
+  datastore.database_table_factory:
+    class: \Drupal\datastore\Storage\DatabaseTableFactory
+    arguments:
+      - '@database'
 
-    datastore.database_table_factory:
-      class: \Drupal\datastore\Storage\DatabaseTableFactory
-      arguments:
-        - '@database'
-
-    datastore.sql_endpoint.service:
-      class: \Drupal\datastore\SqlEndpoint\Service
-      arguments:
-        - '@config.factory'
-        - '@datastore.database_table_factory'
-        - '@datastore.service.factory.resource'
-
+  datastore.sql_endpoint.service:
+    class: \Drupal\datastore\SqlEndpoint\Service
+    arguments:
+      - '@config.factory'
+      - '@dkan.datastore.database_table_factory'
+      - '@dkan.datastore.service.factory.resource'

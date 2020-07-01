@@ -6,10 +6,13 @@ use Drupal\common\Exception\DataNodeLifeCycleEntityValidationException;
 use Drupal\Core\Entity\EntityInterface;
 use Drupal\node\Entity\Node;
 
+/**
+ *
+ */
 class Data {
 
   /**
-   * @var Node
+   * @var \Drupal\node\Entity\Node
    */
   protected $node;
 
@@ -24,10 +27,16 @@ class Data {
     $this->saveRawMetadata();
   }
 
+  /**
+   *
+   */
   public function getModifiedDate() {
     return $this->node->getChangedTime();
   }
 
+  /**
+   *
+   */
   public function getIdentifier() {
     return $this->node->uuid();
   }
@@ -66,10 +75,16 @@ class Data {
     $entity->set('field_json_metadata', json_encode($metadata));
   }
 
+  /**
+   *
+   */
   public function setIdentifier($identifier) {
     $this->node->set('uuid', $identifier);
   }
 
+  /**
+   *
+   */
   public function setTitle($title) {
     $this->node->set('title', $title);
   }
@@ -94,17 +109,21 @@ class Data {
     }
   }
 
+  /**
+   *
+   */
   private function fixDataType() {
     if (empty($this->getDataType())) {
       $this->setDataType('dataset');
     }
   }
 
+  /**
+   *
+   */
   private function saveRawMetadata() {
     // Temporarily save the raw json metadata, for later use.
     $this->node->rawMetadata = json_encode($this->getMetaData());
   }
-
-
 
 }

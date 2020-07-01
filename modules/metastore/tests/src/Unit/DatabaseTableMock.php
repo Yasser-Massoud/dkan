@@ -5,24 +5,42 @@ namespace Drupal\Tests\metastore\Unit;
 use Drupal\common\Storage\DatabaseTableInterface;
 use Drupal\common\Storage\Query;
 
+/**
+ *
+ */
 class DatabaseTableMock implements DatabaseTableInterface {
   private $store = [];
 
+  /**
+   *
+   */
   public function retrieveAll(): array {
   }
 
+  /**
+   *
+   */
   public function storeMultiple(array $data) {
     // TODO: Implement storeMultiple() method.
   }
 
+  /**
+   *
+   */
   public function count(): int {
     // TODO: Implement count() method.
   }
 
+  /**
+   *
+   */
   public function destroy() {
     // TODO: Implement destroy() method.
   }
 
+  /**
+   *
+   */
   public function query(Query $query) {
     $storeCopy = $this->store;
 
@@ -43,22 +61,37 @@ class DatabaseTableMock implements DatabaseTableInterface {
     return $storeCopy;
   }
 
+  /**
+   *
+   */
   public function remove(string $id) {
     // TODO: Implement remove() method.
   }
 
+  /**
+   *
+   */
   public function retrieve(string $id) {
     // TODO: Implement retrieve() method.
   }
 
+  /**
+   *
+   */
   public function setSchema($schema) {
     // TODO: Implement setSchema() method.
   }
 
+  /**
+   *
+   */
   public function getSchema() {
     // TODO: Implement getSchema() method.
   }
 
+  /**
+   *
+   */
   public function store($data, string $id = NULL): string {
     $this->store[$id] = json_decode($data);
     return $id;

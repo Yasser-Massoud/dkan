@@ -15,6 +15,9 @@ class FileMapperDatabaseTable extends AbstractDatabaseTable {
 
   private $schema;
 
+  /**
+   *
+   */
   public function __construct(Connection $connection) {
     parent::__construct($connection);
 
@@ -101,4 +104,3 @@ class FileMapperDatabaseTable extends AbstractDatabaseTable {
   }
 
 }
-

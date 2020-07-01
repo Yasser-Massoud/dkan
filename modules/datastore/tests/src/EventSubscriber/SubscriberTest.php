@@ -2,7 +2,7 @@
 
 namespace Drupal\Tests\datastore\EventSubscriber;
 
-use Dkan\Datastore\Resource;
+use Drupal\common\Resource;
 use Drupal\Core\Logger\LoggerChannelFactory;
 use Drupal\datastore\EventSubscriber\Subscriber;
 use Drupal\datastore\Service;
@@ -13,18 +13,19 @@ use MockChain\Options;
 use PHPUnit\Framework\TestCase;
 use Symfony\Component\DependencyInjection\Container;
 
+/**
+ *
+ */
 class SubscriberTest extends TestCase {
   use ServiceCheckTrait;
 
+  /**
+   *
+   */
   public function test() {
-    $resource = new Resource('123', 'http://hello.world/file.csv', 'text/csv');
-    $data = (object) [
-      'uuid' => $resource->getId(),
-      'type' => 'source',
-      'url' => $resource->getFilePath(),
-      'revision' => '1',
-      'resource' => $resource,
-    ];
+    $url = 'http://hello.world/file.csv';
+    $resource = new Resource('http://hello.world/file.csv', 'text/csv');
+    $event = new Registration($resource);
 
     $chain = $this->getContainerChain();
     \Drupal::setContainer($chain->getMock());
@@ -32,12 +33,15 @@ class SubscriberTest extends TestCase {
     // When the conditions of a new "datastoreable" resource are met, add
     // an import operation to the queue.
     $subscriber = new Subscriber();
-    $subscriber->onRegistration(new Registration($data));
+    $subscriber->onRegistration($event);
 
     // The resource identifier is registered with the datastore service.
-    $this->assertEquals('123', $chain->getStoredInput('import')[0]);
+    $this->assertEquals(md5($url), $chain->getStoredInput('import')[0]);
   }
 
+  /**
+   *
+   */
   private function getContainerChain() {
     $this->checkService('dkan.datastore.service', 'datastore');
 

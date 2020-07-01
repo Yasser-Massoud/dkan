@@ -1,16 +1,28 @@
 <?php
+
 namespace Drupal\metastore\Events;
 
+use Drupal\common\Resource;
 use Symfony\Component\EventDispatcher\Event;
 
+/**
+ *
+ */
 class Registration extends Event {
-  private $data;
+  private $resource;
 
-  public function __construct($data) {
-    $this->data = $data;
+  /**
+   *
+   */
+  public function __construct(Resource $resource) {
+    $this->resource = $resource;
   }
 
-  public function getData() {
-    return $this->data;
+  /**
+   *
+   */
+  public function getResource(): Resource {
+    return $this->resource;
   }
+
 }

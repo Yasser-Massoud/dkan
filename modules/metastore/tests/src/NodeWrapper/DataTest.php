@@ -8,12 +8,19 @@ use Drupal\node\Entity\Node;
 use MockChain\Chain;
 use PHPUnit\Framework\TestCase;
 
+/**
+ *
+ */
 class DataTest extends TestCase {
+
+  /**
+   *
+   */
   public function testNotNode() {
     $this->expectExceptionMessage("We only work with nodes.");
 
     $entity = (new Chain($this))
-      ->add(EntityInterface::class, "blah", NULL)
+      ->add(EntityInterface::class)
       ->getMock();
 
     new Data($entity);
@@ -31,4 +38,5 @@ class DataTest extends TestCase {
 
     new Data($node);
   }
+
 }

@@ -140,7 +140,7 @@ class ServiceTest extends TestCase {
       ->getMock();
 
     $dkanHarvester = (new Chain($this))
-      ->add(HarvestService::class, "harvest", "Hello")
+      ->add(HarvestService::class)
       ->getMock();
 
     $service = $this->getMockBuilder(HarvestService::class)

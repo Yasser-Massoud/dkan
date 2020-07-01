@@ -19,6 +19,9 @@ use Symfony\Component\HttpFoundation\RequestStack;
  */
 class DataTest extends TestCase {
 
+  /**
+   *
+   */
   public function testPresaveDistribution() {
     \Drupal::setContainer($this->getContainer());
 
@@ -31,6 +34,9 @@ class DataTest extends TestCase {
     $this->assertTrue((substr_count($metadata[0]->data->downloadURL, UrlHostTokenResolver::TOKEN) > 0));
   }
 
+  /**
+   *
+   */
   public function testPresaveDistributionFileMapper() {
     \Drupal::setContainer($this->getContainer());
 
@@ -52,6 +58,9 @@ class DataTest extends TestCase {
     $this->assertEquals(md5($url), $metadata[0]->data->downloadURL[0]);
   }
 
+  /**
+   *
+   */
   private function getContainer() {
     return (new Chain($this))
       ->add(Container::class, "get", RequestStack::class)
@@ -61,6 +70,9 @@ class DataTest extends TestCase {
       ->getMock();
   }
 
+  /**
+   *
+   */
   private function getDataChain() {
     $metadata = (object) [
       "data" => (object) [

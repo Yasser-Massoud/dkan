@@ -2,7 +2,7 @@
 
 namespace Drupal\metastore\LifeCycle;
 
-use Dkan\Datastore\Resource;
+use Drupal\common\Resource;
 use Drupal\common\UrlHostTokenResolver;
 use Drupal\metastore\Reference\Dereferencer;
 use Drupal\metastore\Traits\FileMapperTrait;
@@ -98,11 +98,11 @@ class Data extends AbstractData {
 
     // Check for possible orphan property references when updating a dataset.
     /*if ($raw = $this->data->getRawMetadata()) {
-      $orphanChecker = \Drupal::service("metastore.orphan_checker");
-      $orphanChecker->processReferencesInUpdatedDataset(
-        $raw,
-        $metadata
-      );
+    $orphanChecker = \Drupal::service("metastore.orphan_checker");
+    $orphanChecker->processReferencesInUpdatedDataset(
+    $raw,
+    $metadata
+    );
     }*/
   }
 
@@ -125,8 +125,10 @@ class Data extends AbstractData {
 
       try {
         // Register the url with the filemapper.
-        $downloadUrl = $this->getFileMapper()
-          ->register(new Resource(md5($downloadUrl), $downloadUrl, $mimeType));
+        $resource = new Resource($downloadUrl, $mimeType);
+        if ($this->getFileMapper()->register($resource)) {
+          $downloadUrl = [$resource->getIdentifier(), $resource->getVersion()];
+        }
       }
       catch (\Exception $e) {
       }

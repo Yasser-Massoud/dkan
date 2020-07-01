@@ -1,5 +1,7 @@
 <?php
 
+namespace Drupal\Tests\datastore\Plugin\QueuWorker;
+
 use Drupal\Core\DependencyInjection\Container;
 use Drupal\Core\Logger\LoggerChannel;
 use Drupal\Core\Logger\LoggerChannelFactory;
@@ -15,7 +17,7 @@ use Drupal\Core\Queue\QueueInterface;
 /**
  *
  */
-class Import2Test extends TestCase {
+class ImportTest extends TestCase {
 
   /**
    *
@@ -47,12 +49,12 @@ class Import2Test extends TestCase {
    *
    */
   public function testErrorPath() {
-    $result = (new Chain($this))
-      ->add(Result::class, 'getStatus', Result::ERROR)
-      ->add(Result::class, 'getError', 'Oops')
-      ->getMock();
 
-    $containerChain = $this->getContainerChain($result);
+    $resultChain = (new Chain($this))
+      ->add(Result::class, 'getStatus', Result::ERROR)
+      ->add(Result::class, 'getError', 'Oops');
+
+    $containerChain = $this->getContainerChain($resultChain->getMock());
     $containerChain
       ->add(LoggerChannelFactory::class, 'get', LoggerChannel::class)
       ->add(LoggerChannel::class, 'log', NULL, 'log');

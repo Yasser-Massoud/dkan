@@ -3,8 +3,8 @@
 namespace Drupal\datastore\Service\ImporterList;
 
 use Drupal\datastore\Service\Factory\Import;
-use Drupal\datastore\Service\Factory\Resource;
 use Drupal\common\Storage\JobStoreFactory;
+use Drupal\datastore\Service\ResourceLocalizer;
 use FileFetcher\FileFetcher;
 
 /**
@@ -15,19 +15,19 @@ class ImporterList {
   /**
    * A JobStore object.
    *
-   * @var \Drupal\datastore\Storage\JobStore
+   * @var \Drupal\common\Storage\JobStore
    */
   private $jobStoreFactory;
 
-  private $resourceServiceFactory;
+  private $resourceLocalizer;
   private $importServiceFactory;
 
   /**
    * Constructor.
    */
-  public function __construct(JobStoreFactory $jobStoreFactory, Resource $resrouceServiceFactory, Import $importServiceFactory) {
+  public function __construct(JobStoreFactory $jobStoreFactory, ResourceLocalizer $resourceLocalizer, Import $importServiceFactory) {
     $this->jobStoreFactory = $jobStoreFactory;
-    $this->resourceServiceFactory = $resrouceServiceFactory;
+    $this->resourceLocalizer = $resourceLocalizer;
     $this->importServiceFactory = $importServiceFactory;
   }
 
@@ -46,12 +46,10 @@ class ImporterList {
     $store = $this->jobStoreFactory->getInstance(FileFetcher::class);
     foreach ($store->retrieveAll() as $id) {
       try {
-        $fileFetchers[$id] = $this->resourceServiceFactory->getInstance($id)
-          ->getFileFetcher();
+        $resource = $this->resourceLocalizer->getByUniqueIdentifier($id);
+        $fileFetchers[$id] = $this->resourceLocalizer->getFileFetcher($resource);
 
-        /* @var $resource \Dkan\Datastore\Resource */
-        $resource = $this->resourceServiceFactory->getInstance($id)->get();
-        $importers[$id] = $this->importServiceFactory->getInstance($resource->getId(),
+        $importers[$id] = $this->importServiceFactory->getInstance($resource->getUniqueIdentifier(),
           ['resource' => $resource])->getImporter();
       }
       catch (\Exception $e) {
@@ -70,8 +68,8 @@ class ImporterList {
   /**
    * Static function to allow easy creation of lists.
    */
-  public static function getList(JobStoreFactory $jobStoreFactory, Resource $resrouceServiceFactory, Import $importServiceFactory): array {
-    $importerLister = new ImporterList($jobStoreFactory, $resrouceServiceFactory, $importServiceFactory);
+  public static function getList(JobStoreFactory $jobStoreFactory, ResourceLocalizer $resrouceLocalizer, Import $importServiceFactory): array {
+    $importerLister = new ImporterList($jobStoreFactory, $resrouceLocalizer, $importServiceFactory);
     return $importerLister->buildList();
   }
 

@@ -26,7 +26,6 @@ class JobStoreTest extends TestCase {
    */
   public function testConstruction() {
     $chain = (new Chain($this))
-      ->add(Connection::class, "blah", "blah")
       ->add(Connection::class, "schema", Schema::class)
       ->add(Schema::class, "tableExists", FALSE);
 

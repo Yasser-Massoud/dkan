@@ -3,10 +3,11 @@
 namespace Drupal\datastore;
 
 use Drupal\common\Storage\JobStoreFactory;
+use Procrastinator\Result;
 use Symfony\Component\DependencyInjection\ContainerInterface;
 use Drupal\Core\DependencyInjection\ContainerInjectionInterface;
 use Drupal\Core\Queue\QueueFactory;
-use Drupal\datastore\Service\Factory\Resource;
+use Drupal\datastore\Service\ResourceLocalizer;
 use Drupal\datastore\Service\Factory\Import;
 use Drupal\datastore\Service\ImporterList\ImporterList;
 use Dkan\Datastore\Importer;
@@ -16,7 +17,7 @@ use Dkan\Datastore\Importer;
  */
 class Service implements ContainerInjectionInterface {
 
-  private $resourceServiceFactory;
+  private $resourceLocalizer;
   private $importServiceFactory;
   private $queue;
   private $jobStoreFactory;
@@ -28,19 +29,19 @@ class Service implements ContainerInjectionInterface {
    */
   public static function create(ContainerInterface $container) {
     return new Service(
-      $container->get('datastore.service.factory.resource'),
+      $container->get('dkan.datastore.service.resource_localizer'),
       $container->get('datastore.service.factory.import'),
       $container->get('queue'),
-      $container->get('datastore.job_store_factory')
+      $container->get('dkan.common.job_store')
     );
   }
 
   /**
    * Constructor for datastore service.
    */
-  public function __construct(Resource $resourceServiceFactory, Import $importServiceFactory, QueueFactory $queue, JobStoreFactory $jobStoreFactory) {
+  public function __construct(ResourceLocalizer $resourceLocalizer, Import $importServiceFactory, QueueFactory $queue, JobStoreFactory $jobStoreFactory) {
     $this->queue = $queue->get('datastore_import');
-    $this->resourceServiceFactory = $resourceServiceFactory;
+    $this->resourceLocalizer = $resourceLocalizer;
     $this->importServiceFactory = $importServiceFactory;
     $this->jobStoreFactory = $jobStoreFactory;
   }
@@ -48,41 +49,40 @@ class Service implements ContainerInjectionInterface {
   /**
    * Start import process for a resource, provided by UUID.
    *
-   * @param string $uuid
-   *   UUID for resource node.
+   * @param string $identifier
+   *   A resource identifier.
    * @param bool $deferred
    *   Send to the queue for later? Will import immediately if FALSE.
    */
-  public function import(string $uuid, bool $deferred = FALSE): array {
+  public function import(string $identifier, bool $deferred = FALSE, $version = NULL): array {
 
-    $resourceService = $this->resourceServiceFactory->getInstance($uuid);
+    /* @var $resource \Drupal\common\Resource */
+    $resource = $this->resourceLocalizer->getFileMapper()->get($identifier, 'source', $version);
+    $this->resourceLocalizer->localize($resource);
 
     // If we passed $deferred, immediately add to the queue for later.
-    if (!empty($deferred)) {
-      // This creates a filefetcher job.
-      $resourceService->get(TRUE, FALSE);
-      $queueId = $this->queueImport($uuid);
+    if ($deferred == TRUE) {
       return [
-        'message' => "Resource {$uuid} has been queued to be imported.",
-        'queue_id' => $queueId,
+        'message' => "Resource {$identifier} has been queued to be imported.",
       ];
     }
 
-    /* @var $resource \Dkan\Datastore\Resource */
-    $resource = $resourceService->get(TRUE);
-    if (!$resource) {
-      $name = substr(strrchr(get_class($resourceService), "\\"), 1);
-      return [$name => $resourceService->getResult()];
+    $ff = $this->resourceLocalizer->getFileFetcher($resource);
+    $result = $ff->run();
+
+    if ($result->getStatus() != Result::DONE) {
+      $name = substr(strrchr(get_class($this->resourceLocalizer), "\\"), 1);
+      return [$name => $result];
     }
 
-    $importService = $this->importServiceFactory->getInstance($resource->getId(), ['resource' => $resource]);
+    $importService = $this->importServiceFactory->getInstance($resource->getUniqueIdentifier(), ['resource' => $resource]);
     $importService->import();
 
-    $rname = substr(strrchr(get_class($resourceService), "\\"), 1);
+    $rname = substr(strrchr(get_class($this->resourceLocalizer), "\\"), 1);
     $iname = substr(strrchr(get_class($importService), "\\"), 1);
 
     return [
-      $rname => $resourceService->getResult(),
+      $rname => $result,
       $iname => $importService->getResult(),
     ];
   }

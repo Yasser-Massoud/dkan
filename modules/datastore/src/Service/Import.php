@@ -7,7 +7,7 @@ use Dkan\Datastore\Importer;
 use Drupal\datastore\Storage\DatabaseTable;
 use Drupal\common\Storage\JobStoreFactory;
 use Procrastinator\Result;
-use Dkan\Datastore\Resource;
+use Drupal\common\Resource;
 use Drupal\datastore\Storage\DatabaseTableFactory;
 
 /**
@@ -60,7 +60,7 @@ class Import {
       $delimiter = "\t";
     }
 
-    $importer = Importer::get($this->resource->getId(),
+    $importer = Importer::get($this->resource->getUniqueIdentifier(),
       $this->jobStoreFactory->getInstance(Importer::class),
       [
         "storage" => $this->getStorage(),
@@ -100,7 +100,7 @@ class Import {
    *   DatabaseTable storage object.
    */
   public function getStorage(): DatabaseTable {
-    return $this->databaseTableFactory->getInstance($this->resource->getId(), ['resource' => $this->resource]);
+    return $this->databaseTableFactory->getInstance($this->resource->getUniqueIdentifier(), ['resource' => $this->resource]);
   }
 
 }

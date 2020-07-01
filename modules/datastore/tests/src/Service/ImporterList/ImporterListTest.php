@@ -1,20 +1,21 @@
 <?php
 
+namespace Drupal\Tests\datastore\Service\ImporterList;
+
 use Dkan\Datastore\Importer;
-use Dkan\Datastore\Resource;
-use Drupal\datastore\Service\Factory\Resource as ResourceFactory;
-use Drupal\datastore\Service\ImporterList\ImporterList;
-use Drupal\datastore\Service\Resource as ResourceService;
+use Drupal\common\Resource;
 use Drupal\common\Storage\JobStore;
-use MockChain\Sequence;
-use FileFetcher\FileFetcher;
-use MockChain\Chain;
-use MockChain\Options;
-use PHPUnit\Framework\TestCase;
-use Procrastinator\Result;
 use Drupal\common\Storage\JobStoreFactory;
 use Drupal\datastore\Service\Factory\Import as ImportFactory;
 use Drupal\datastore\Service\Import as ImportService;
+use Drupal\datastore\Service\ImporterList\ImporterList;
+use Drupal\datastore\Service\ResourceLocalizer;
+use FileFetcher\FileFetcher;
+use MockChain\Chain;
+use MockChain\Options;
+use MockChain\Sequence;
+use PHPUnit\Framework\TestCase;
+use Procrastinator\Result;
 
 /**
  *
@@ -51,18 +52,17 @@ class ImporterListTest extends TestCase {
       ->add(JobStoreFactory::class, "getInstance", $jobStore)
       ->getMock();
 
-    $resourceServiceFactory = (new Chain($this))
-      ->add(ResourceFactory::class, "getInstance", ResourceService::class)
-      ->add(ResourceService::class, "getFileFetcher", $fileFetcher)
-      ->add(ResourceService::class, "get", new Resource("blah", "", "text/csv"))
-      ->getMock();
-
     $importServiceFactory = (new Chain($this))
       ->add(ImportFactory::class, "getInstance", ImportService::class)
       ->add(ImportService::class, "getImporter", Importer::class)
       ->getMock();
 
-    $list = ImporterList::getList($jobStoreFactory, $resourceServiceFactory, $importServiceFactory);
+    $resourceLocalizer = (new Chain($this))
+      ->add(ResourceLocalizer::class, 'getFileFetcher', FileFetcher::class)
+      ->add(ResourceLocalizer::class, 'getByUniqueIdentifier', Resource::class)
+      ->getMock();
+
+    $list = ImporterList::getList($jobStoreFactory, $resourceLocalizer, $importServiceFactory);
     $this->assertTrue(is_array($list));
   }
 
