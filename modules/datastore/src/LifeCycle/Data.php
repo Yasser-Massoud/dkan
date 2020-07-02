@@ -18,12 +18,11 @@ class Data extends AbstractData {
    * Also, its datastore should go.
    */
   public function predelete() {
-    if ($this->data->getDataType() != 'distribution') {
+    /*if ($this->data->getDataType() != 'distribution') {
       return;
     }
 
     try {
-      /* @var $datastoreService \Drupal\datastore\Service */
       $datastoreService = \Drupal::service('datastore.service');
       $datastoreService->drop($this->data->getIdentifier());
     }
@@ -38,10 +37,9 @@ class Data extends AbstractData {
       $url = $data->downloadURL;
       $pieces = explode('sites/default/files/', $url);
       $path = "public://" . end($pieces);
-      /** @var \Drupal\Core\File\FileSystemInterface $fileSystemService */
       $fileSystemService = \Drupal::service('file_system');
       $fileSystemService->delete($path);
-    }
+    }*/
   }
 
 }

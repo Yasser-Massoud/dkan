@@ -9,6 +9,7 @@
 
     <testsuites>
         <testsuite name="DKAN Test Suite">
+            <directory>tests</directory>
             <directory>modules/common/tests</directory>
             <directory>modules/common/modules/dkan_alt_api/tests</directory>
             <directory>modules/metastore/tests</directory>
@@ -33,6 +34,7 @@
         <!-- E.g., `DRUPAL_VERSION=V8 ./vendor/bin/phpunit` -->
         <env name="DRUPAL_VERSION" value="V8"/>
         <env name="SIMPLETEST_BASE_URL" value="http://web"/>
+        <env name="SIMPLETEST_DB" value="mysql://drupal:123@db/drupal"/>
     </php>
     <filter>
         <!-- whitelist needed for code coverage generation to work -->

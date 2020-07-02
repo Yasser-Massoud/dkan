@@ -12,10 +12,7 @@ use MockChain\Options;
  */
 trait ServiceCheckTrait {
 
-  /**
-   *
-   */
-  private function getContainerChainForService($serviceName): Chain {
+  private function getContainerOptionsForService($serviceName): Options {
     $options = (new Options())->index(0);
     $service = $this->checkService($serviceName);
     $arguments = $service['arguments'];
@@ -28,6 +25,14 @@ trait ServiceCheckTrait {
       }
       $options->add($arg, $class);
     }
+    return $options;
+  }
+
+  /**
+   *
+   */
+  private function getContainerChainForService($serviceName): Chain {
+    $options = $this->getContainerOptionsForService($serviceName);
     return (new Chain($this))->add(Container::class, 'get', $options);
   }
 

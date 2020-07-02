@@ -3,6 +3,7 @@
 namespace Drupal\metastore\NodeWrapper;
 
 use Drupal\common\Exception\DataNodeLifeCycleEntityValidationException;
+use Drupal\common\LoggerTrait;
 use Drupal\Core\Entity\EntityInterface;
 use Drupal\node\Entity\Node;
 
@@ -10,6 +11,7 @@ use Drupal\node\Entity\Node;
  *
  */
 class Data {
+  use LoggerTrait;
 
   /**
    * @var \Drupal\node\Entity\Node
@@ -22,7 +24,9 @@ class Data {
   public function __construct(EntityInterface $entity) {
     $this->validate($entity);
     $this->node = $entity;
+  }
 
+  private function fix() {
     $this->fixDataType();
     $this->saveRawMetadata();
   }
@@ -31,6 +35,7 @@ class Data {
    *
    */
   public function getModifiedDate() {
+    $this->fix();
     return $this->node->getChangedTime();
   }
 
@@ -38,6 +43,8 @@ class Data {
    *
    */
   public function getIdentifier() {
+    $this->fix();
+
     return $this->node->uuid();
   }
 
@@ -45,7 +52,8 @@ class Data {
    * The unaltered version of the metadata.
    */
   public function getRawMetadata() {
-    if ($this->node->rawMetadata) {
+    $this->fix();
+    if (isset($this->node->rawMetadata)) {
       return json_decode($this->node->rawMetadata);
     }
   }
@@ -54,6 +62,7 @@ class Data {
    * Protected.
    */
   public function getDataType() {
+    $this->fix();
     return $this->node->get('field_data_type')->value;
   }
 
@@ -61,24 +70,23 @@ class Data {
    * Protected.
    */
   public function getMetaData() {
-    /* @var $entity \Drupal\node\Entity\Node */
-    $entity = $this->node;
-    return json_decode($entity->get('field_json_metadata')->value);
+    $this->fix();
+    return json_decode($this->node->get('field_json_metadata')->value);
   }
 
   /**
    * Protected.
    */
   public function setMetadata($metadata) {
-    /* @var $entity \Drupal\node\Entity\Node */
-    $entity = $this->node;
-    $entity->set('field_json_metadata', json_encode($metadata));
+    $this->fix();
+    $this->node->set('field_json_metadata', json_encode($metadata));
   }
 
   /**
    *
    */
   public function setIdentifier($identifier) {
+    $this->fix();
     $this->node->set('uuid', $identifier);
   }
 
@@ -86,13 +94,19 @@ class Data {
    *
    */
   public function setTitle($title) {
+    $this->fix();
     $this->node->set('title', $title);
+  }
+
+  public function isNew() {
+    return $this->node->isNew();
   }
 
   /**
    * Private.
    */
   private function setDataType($type) {
+    $this->fix();
     $this->node->set('field_data_type', $type);
   }
 
@@ -113,8 +127,8 @@ class Data {
    *
    */
   private function fixDataType() {
-    if (empty($this->getDataType())) {
-      $this->setDataType('dataset');
+    if (empty($this->node->get('field_data_type')->value)) {
+      $this->node->get('field_data_type')->value = 'dataset';
     }
   }
 
@@ -123,7 +137,10 @@ class Data {
    */
   private function saveRawMetadata() {
     // Temporarily save the raw json metadata, for later use.
-    $this->node->rawMetadata = json_encode($this->getMetaData());
+    if (!isset($this->node->rawMetadata)) {
+      $raw = $this->node->get('field_json_metadata')->value;
+      $this->node->rawMetadata = $raw;
+    }
   }
 
 }

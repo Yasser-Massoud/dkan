@@ -30,7 +30,7 @@ class Service implements ContainerInjectionInterface {
   public static function create(ContainerInterface $container) {
     return new Service(
       $container->get('dkan.datastore.service.resource_localizer'),
-      $container->get('datastore.service.factory.import'),
+      $container->get('dkan.datastore.service.factory.import'),
       $container->get('queue'),
       $container->get('dkan.common.job_store')
     );
@@ -62,6 +62,7 @@ class Service implements ContainerInjectionInterface {
 
     // If we passed $deferred, immediately add to the queue for later.
     if ($deferred == TRUE) {
+      $this->queueImport($resource->getUniqueIdentifier());
       return [
         'message' => "Resource {$identifier} has been queued to be imported.",
       ];

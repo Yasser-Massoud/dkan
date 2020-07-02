@@ -3,7 +3,7 @@ services:
     class: \Drupal\datastore\Service
     arguments:
       - '@dkan.datastore.service.resource_localizer'
-      - '@datastore.service.factory.import'
+      - '@dkan.datastore.service.factory.import'
       - '@queue'
       - '@dkan.common.job_store'
 
@@ -46,8 +46,8 @@ services:
   datastore.service:
     class: \Drupal\datastore\Service
     arguments:
-      - '@datastore.service.factory.resource'
-      - '@datastore.service.factory.import'
+      - '@dkan.datastore.service.resource_localizer'
+      - '@dkan.datastore.service.factory.import'
       - '@queue'
       - '@dkan.common.job_store'
 
@@ -71,4 +71,4 @@ services:
     arguments:
       - '@config.factory'
       - '@dkan.datastore.database_table_factory'
-      - '@dkan.datastore.service.factory.resource'
+      - '@dkan.datastore.service.resource_localizer'

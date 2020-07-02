@@ -2,6 +2,7 @@
 
 namespace Drupal\metastore\LifeCycle;
 
+use Drupal\common\LoggerTrait;
 use Drupal\common\Resource;
 use Drupal\common\UrlHostTokenResolver;
 use Drupal\metastore\Reference\Dereferencer;
@@ -12,6 +13,7 @@ use Drupal\metastore\Traits\FileMapperTrait;
  */
 class Data extends AbstractData {
   use FileMapperTrait;
+  use LoggerTrait;
 
   /**
    * Load.
@@ -29,15 +31,39 @@ class Data extends AbstractData {
     $this->go('Presave');
   }
 
+  public function predelete() {
+    $this->go('predelete');
+  }
+
+  protected function datasetPredelete() {
+    $raw = $this->data->getRawMetadata();
+    $this->debug("@raw", ['@raw' => json_encode($raw)]);
+
+    if (is_object($raw)) {
+      $referencer = \Drupal::service("metastore.orphan_checker");
+      $referencer->processReferencesInDeletedDataset($raw);
+    }
+  }
+
+  protected function distributionPredelete() {
+    $metadata = $this->data->getRawMetadata();
+  }
+
   /**
    * Private.
    */
   protected function datasetLoad() {
     $metadata = $this->data->getMetaData();
+    $this->debug(json_encode($metadata));
 
     // Dereference dataset properties.
     $referencer = \Drupal::service("metastore.dereferencer");
     $metadata = $referencer->dereference($metadata, dereferencing_method());
+
+    $referencing_method = dereferencing_method();
+    if ($referencing_method == Dereferencer::DEREFERENCE_OUTPUT_REFERENCE_IDS) {
+      $metadata = $this->addNodeModifiedDate($metadata);
+    }
 
     $this->data->setMetadata($metadata);
   }
@@ -49,17 +75,29 @@ class Data extends AbstractData {
    */
   protected function distributionLoad() {
     $metadata = $this->data->getMetaData();
+    $this->debug(json_encode($metadata));
 
     $fileMapperInfo = $metadata->data->downloadURL;
     \Drupal::service('logger.channel.default')->notice(json_encode($fileMapperInfo));
     if (is_array($fileMapperInfo)) {
-      $url = $this->getFileMapper()->get($fileMapperInfo[0], 'source', $fileMapperInfo[1]);
-      \Drupal::service('logger.channel.default')->notice(json_encode($url));
-      if ($url) {
-        $metadata->data->downloadURL = $url;
+
+      /* @var $resource Resource */
+      $resource = $this->getFileMapper()->get($fileMapperInfo[0], 'source', $fileMapperInfo[1]);
+
+      $referencing_method = dereferencing_method();
+      if ($referencing_method == Dereferencer::DEREFERENCE_OUTPUT_REFERENCE_IDS) {
+        $metadata->data->downloadURL = (object) [
+          "identifier" => "{$fileMapperInfo[0]}__{$fileMapperInfo[1]}__source",
+          "data" => $resource,
+        ];
       }
       else {
-        $metadata->data->downloadURL = "";
+        if ($resource) {
+          $metadata->data->downloadURL = $resource->getFilePath();
+        }
+        else {
+          $metadata->data->downloadURL = "";
+        }
       }
     }
 
@@ -72,6 +110,7 @@ class Data extends AbstractData {
    * Private.
    */
   protected function datasetPresave() {
+    $this->debug();
     $metadata = $this->data->getMetaData();
 
     $title = isset($metadata->title) ? $metadata->title : $metadata->name;
@@ -89,27 +128,25 @@ class Data extends AbstractData {
     $referencer = \Drupal::service("metastore.referencer");
     $metadata = $referencer->reference($metadata);
 
-    $referencing_method = dereferencing_method();
-    if ($referencing_method == Dereferencer::DEREFERENCE_OUTPUT_REFERENCE_IDS) {
-      $metadata = $this->addNodeModifiedDate($metadata);
-    }
-
     $this->data->setMetadata($metadata);
 
     // Check for possible orphan property references when updating a dataset.
-    /*if ($raw = $this->data->getRawMetadata()) {
-    $orphanChecker = \Drupal::service("metastore.orphan_checker");
-    $orphanChecker->processReferencesInUpdatedDataset(
-    $raw,
-    $metadata
-    );
-    }*/
+    if (!$this->data->isNew()) {
+      $raw = $this->data->getRawMetadata();
+      $orphanChecker = \Drupal::service("dkan.metastore.orphan_checker");
+      $orphanChecker->processReferencesInUpdatedDataset(
+        $raw,
+        $metadata
+      );
+    }
+
   }
 
   /**
    * Private.
    */
   protected function distributionPresave() {
+    $this->debug();
     $metadata = $this->data->getMetaData();
 
     if (isset($metadata->data->downloadURL)) {
@@ -126,6 +163,8 @@ class Data extends AbstractData {
       try {
         // Register the url with the filemapper.
         $resource = new Resource($downloadUrl, $mimeType);
+        $this->debug("@resource", ['@resource' => json_encode($resource)]);
+
         if ($this->getFileMapper()->register($resource)) {
           $downloadUrl = [$resource->getIdentifier(), $resource->getVersion()];
         }
