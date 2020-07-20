@@ -76,6 +76,7 @@ class Service implements ContainerInjectionInterface {
       return [$name => $result];
     }
 
+    $resource = $this->resourceLocalizer->get($resource);
     $importService = $this->importServiceFactory->getInstance($resource->getUniqueIdentifier(), ['resource' => $resource]);
     $importService->import();
 

@@ -24,7 +24,7 @@ class Import {
    * Constructor.
    */
   public function __construct(Resource $resource, JobStoreFactory $jobStoreFactory, DatabaseTableFactory $databaseTableFactory) {
-    $this->resource = $resource;
+    $this->resource = new \Dkan\Datastore\Resource(md5($resource->getUniqueIdentifier()), $resource->getFilePath(), $resource->getMimeType());
     $this->jobStoreFactory = $jobStoreFactory;
     $this->databaseTableFactory = $databaseTableFactory;
   }
@@ -60,7 +60,7 @@ class Import {
       $delimiter = "\t";
     }
 
-    $importer = Importer::get($this->resource->getUniqueIdentifier(),
+    $importer = Importer::get($this->resource->getId(),
       $this->jobStoreFactory->getInstance(Importer::class),
       [
         "storage" => $this->getStorage(),
@@ -100,7 +100,7 @@ class Import {
    *   DatabaseTable storage object.
    */
   public function getStorage(): DatabaseTable {
-    return $this->databaseTableFactory->getInstance($this->resource->getUniqueIdentifier(), ['resource' => $this->resource]);
+    return $this->databaseTableFactory->getInstance($this->resource->getId(), ['resource' => $this->resource]);
   }
 
 }

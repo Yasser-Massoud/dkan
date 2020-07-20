@@ -8,6 +8,7 @@ use Drupal\common\Util\DrupalFiles;
 use Drupal\Core\File\FileSystemInterface;
 use Drupal\metastore\FileMapper;
 use FileFetcher\FileFetcher;
+use Procrastinator\Result;
 
 /**
  *
@@ -40,6 +41,15 @@ class ResourceLocalizer {
    *
    */
   public function get(Resource $resource): ?Resource {
+    try {
+      $ff = $this->getFileFetcher($resource);
+      if ($ff->getResult()->getStatus() == Result::DONE) {
+        $new = $resource->createNewPerspective(self::PERSPECTIVE, $ff->getStateProperty('destination'));
+        $this->getFileMapper()->registerNewPerspective($new);
+      }
+    }
+    catch(\Exception $e) {
+    }
     return $this->fileMapper->get($resource->getIdentifier(), self::PERSPECTIVE, $resource->getVersion());
   }
 

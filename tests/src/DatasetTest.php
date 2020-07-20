@@ -3,12 +3,14 @@
 namespace Drupal\Tests\dkan;
 
 use Composer\Autoload\ClassLoader;
+use Drupal\common\Util\DrupalFiles;
 use Drupal\Core\DrupalKernel;
 use Drupal\metastore\Reference\Dereferencer;
 use Drupal\node\Entity\Node;
 use Drupal\Tests\common\Traits\ServiceCheckTrait;
 use Drupal\Tests\UnitTestCase;
 use FileFetcher\FileFetcher;
+use MockChain\Chain;
 use Symfony\Component\HttpFoundation\Request;
 
 class DatasetTest extends UnitTestCase {
@@ -20,11 +22,18 @@ class DatasetTest extends UnitTestCase {
     $classLoader = new ClassLoader();
     $kernel = new DrupalKernel('prod', $classLoader, TRUE, $appRoot);
     $kernel->handle(new Request());
+
+    $drupalFiles = (new Chain($this))
+      ->add(DrupalFiles::class, 'getPublicFilesDirectory', $appRoot . "/sites/default/files")
+      ->addd('getFileSystem', \Drupal::getContainer()->get('file_system'))
+      ->getMock();
+
+    \Drupal::getContainer()->set('dkan.common.drupal_files', $drupalFiles);
   }
 
 
   public function test() {
-    $downloadUrl = "http://spatialkeydocs.s3.amazonaws.com/FL_insurance_sample.csv.zip";
+    $downloadUrl = "https://dkan-default-content-files.s3.amazonaws.com/district_centerpoints_small.csv";
     $dataset = '
     {
       "title": "Test #1",
@@ -56,6 +65,17 @@ class DatasetTest extends UnitTestCase {
       $downloadUrl,
       $datasetWithReferences->distribution[0]->data->downloadURL->data->filePath
     );
+
+    /* @var $queueFactory \Drupal\Core\Queue\QueueFactory */
+    $queueFactory = \Drupal::service('queue');
+    $queue = $queueFactory->get('datastore_import');
+
+    /* @var $queueWorkerManager \Drupal\Core\Queue\QueueWorkerManager */
+    $queueWorkerManager = \Drupal::service('plugin.manager.queue_worker');
+    $queueWorker = $queueWorkerManager->createInstance('datastore_import');
+    while($item = $queue->claimItem()) {
+      $queueWorker->processItem($item);
+    }
   }
 
   private function removeAllNodes() {

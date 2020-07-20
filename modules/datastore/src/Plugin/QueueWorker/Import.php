@@ -2,8 +2,11 @@
 
 namespace Drupal\datastore\Plugin\QueueWorker;
 
+use Drupal\common\LoggerTrait;
+use Drupal\common\Resource;
 use Drupal\Core\Queue\QueueWorkerBase;
 use Drupal\Core\Logger\RfcLogLevel;
+use Drupal\metastore\FileMapper;
 use Procrastinator\Result;
 use Drupal\Core\Plugin\ContainerFactoryPluginInterface;
 use Symfony\Component\DependencyInjection\ContainerInterface;
@@ -18,9 +21,7 @@ use Symfony\Component\DependencyInjection\ContainerInterface;
  * )
  */
 class Import extends QueueWorkerBase implements ContainerFactoryPluginInterface {
-
-  use \Drupal\Core\Logger\LoggerChannelTrait;
-
+  use LoggerTrait;
 
   private $container;
 
@@ -30,7 +31,9 @@ class Import extends QueueWorkerBase implements ContainerFactoryPluginInterface 
    * {@inheritDoc}
    */
   public static function create(ContainerInterface $container, array $configuration, $plugin_id, $plugin_definition) {
-    return new Import($configuration, $plugin_id, $plugin_definition, $container);
+    $me = new Import($configuration, $plugin_id, $plugin_definition, $container);
+    $me->setLoggerFactory($container->get('logger.factory'));
+    return $me;
   }
 
   /**
@@ -56,10 +59,15 @@ class Import extends QueueWorkerBase implements ContainerFactoryPluginInterface 
   public function processItem($data) {
 
     try {
+      $uid = $data->data['uuid'];
+
+      /* @var $fileMapper FileMapper */
+      $resrouceInfo = Resource::parseUniqueIdentifier($uid);
+
       /** @var \Drupal\datastore\Service $datastore */
       $datastore = $this->container->get('datastore.service');
 
-      $results = $datastore->import($data['uuid']);
+      $results = $datastore->import($resrouceInfo['identifier'], FALSE, $resrouceInfo['version']);
 
       foreach ($results as $result) {
         $this->processResult($result, $data);
@@ -81,28 +89,20 @@ class Import extends QueueWorkerBase implements ContainerFactoryPluginInterface 
     switch ($status) {
       case Result::STOPPED:
         $newQueueItemId = $this->requeue($data);
-        $message = "Import for {$data['uuid']} is requeueing for iteration No. {$data['queue_iteration']}. (ID:{$newQueueItemId}).";
+        $message = "Import for {$data->data['uuid']} is requeueing for iteration No. {$data['queue_iteration']}. (ID:{$newQueueItemId}).";
         break;
 
       case Result::IN_PROGRESS:
       case Result::ERROR:
         $level = RfcLogLevel::ERROR;
-        $message = "Import for {$data['uuid']} returned an error: {$result->getError()}";
+        $message = "Import for {$data->data['uuid']} returned an error: {$result->getError()}";
         break;
 
       case Result::DONE:
-        $message = "Import for {$data['uuid']} completed.";
+        $message = "Import for {$data->data['uuid']} completed.";
         break;
     }
-    $this->log($level, $message);
-  }
-
-  /**
-   * Log a datastore event.
-   */
-  protected function log($level, $message, array $context = []) {
-    $this->getLogger($this->getPluginId())
-      ->log($level, $message, $context);
+    $this->log('dkan', $message, [], $level);
   }
 
   /**
